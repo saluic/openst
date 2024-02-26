@@ -2,8 +2,10 @@ import argparse
 import gzip
 import os
 import time
+from collections.abc import Callable
 
 import pandas as pd
+from tqdm import tqdm
 
 
 def get_barcode_preprocessing_parser():
@@ -48,16 +50,6 @@ def get_barcode_preprocessing_parser():
         action="store_true",
         help="applies reverse complementary after sequence cropping",
     )
-    parser.add_argument(
-        "--single-tile",
-        action="store_true",
-        help="it is guarranteed that the input .fastq(.gz) file contains only a tile. Throw an error otherwise",
-    )
-    parser.add_argument(
-        "--unsorted",
-        action="store_true",
-        help="supports that the file is unsorted respect to tiles. might be slower",
-    )
 
     return parser
 
@@ -81,68 +73,89 @@ def reverse_complement_table(seq):
     return seq.translate(tab)[::-1]
 
 
-def get_tile_number_and_coordinates(read_name):
-    read_name = read_name.split(" ")[0].split(":")[-3:]
-    return read_name
+def get_tile_info(seq_id: str) -> tuple[int, int, int, int]:
+    """
+    Extracts lane, tile, x-coord, and y-coord from sequence ID line.
+    See: https://help.basespace.illumina.com/files-used-by-basespace/fastq-files
+    """
+    info = seq_id.split(" ")[0].split(":")[-4:]
+    return tuple(int(x) for x in info)
 
 
-def process_multiple_tiles(
-    in_fastq: str, out_path: str, out_prefix: str, out_suffix: str, sequence_preprocessor: callable = None
+written_files = set()
+
+
+def append_barcodes_to_disk(
+    *,  # enforce kwargs
+    lane: int,
+    tile: int,
+    barcodes: list[str],
+    xs: list[int],
+    ys: list[int],
+    out_path: str,
+    out_prefix: str,
+    out_suffix: str,
+) -> None:
+    fname = f"{lane}_{tile}"
+    fpath = os.path.join(out_path, f"{out_prefix}{fname}{out_suffix}")
+    df = pd.DataFrame({"cell_bc": barcodes, "xcoord": xs, "ycoord": ys})
+
+    exists = os.path.exists(fpath)
+    if exists and fpath not in written_files:
+        raise FileExistsError(f"{fpath} already exists prior to this run")
+    written_files.add(fpath)
+
+    df.to_csv(
+        fpath,
+        index=False,
+        header=not exists,
+        sep="\t",
+        mode="a",
+    )
+
+
+def process_multiple_unsorted_tiles(
+    *,  # enforce kwargs
+    in_fastq: str,
+    out_path: str,
+    out_prefix: str,
+    out_suffix: str,
+    sequence_preprocessor: Callable[[str], str] | None = None,
 ):
-    current_tile_number = None
-    sequences, xcoords, ycoords = [[], [], []]
-    idx = 0
-    with gzip.open(in_fastq, "rt") as f:
-        for line in f:
-            if idx % 4 == 0:
-                tile_number, xcoord, ycoord = get_tile_number_and_coordinates(line.strip())
-                if current_tile_number is None:
-                    current_tile_number = tile_number
-
-                if tile_number != current_tile_number:
-                    print(f"Writing {len(sequences):,} barcodes of file {current_tile_number} to disk")
-                    df = pd.DataFrame({"cell_bc": sequences, "xcoord": xcoords, "ycoord": ycoords})
-                    df.to_csv(
-                        os.path.join(
-                            out_path,
-                            out_prefix + current_tile_number + out_suffix,
-                        ),
-                        index=False,
-                        sep="\t",
-                    )
-                    current_tile_number = tile_number
-                    sequences, xcoords, ycoords = [[], [], []]
-            elif idx % 4 == 1:
-                sequence = sequence_preprocessor(line) if sequence_preprocessor is not None else line
-                sequences.append(sequence)
-                xcoords.append(xcoord)
-                ycoords.append(ycoord)
-
-            idx += 1
-
-
-def process_single_tile(in_fastq: str, sequence_preprocessor: callable = None) -> pd.DataFrame:
-    all_tile_numbers = set()
-    sequences, xcoords, ycoords = [[], [], []]
-    idx = 0
-    with gzip.open(in_fastq, "rt") as f:
-        for line in f:
-            if idx % 4 == 0:
-                tile_number, xcoord, ycoord = get_tile_number_and_coordinates(line.strip())
-                all_tile_numbers.add(tile_number)
-                if len(all_tile_numbers) > 1:
-                    raise ValueError("You specified a single tile, and the file contains more than one...")
-
-            if idx % 4 == 1:
-                sequence = sequence_preprocessor(line) if sequence_preprocessor is not None else line
-                sequences.append(sequence)
-                xcoords.append(xcoord)
-                ycoords.append(ycoord)
-
-            idx += 1
-
-    df = pd.DataFrame({"cell_bc": sequences, "xcoord": xcoords, "ycoord": ycoords})
-    return df
+    if sequence_preprocessor is None:
+        sequence_preprocessor = lambda x: x
+    curr_tile = None
+    barcodes, xs, ys = [[], [], []]
+    fastq_size = os.stat(in_fastq).st_size  # in compressed bytes
+    last_byte = 0
+    with gzip.open(in_fastq, "rt") as f, tqdm(total=fastq_size, unit="B") as pbar:
+        for i, seq_id in enumerate(f):
+            seq = f.readline()
+            _ = f.readline()
+            _ = f.readline()
+            lane, tile, x, y = get_tile_info(seq_id)
+            next_tile = (lane, tile)
+            barcode = sequence_preprocessor(seq)
+            if next_tile != curr_tile and curr_tile is not None:
+                append_barcodes_to_disk(
+                    lane=curr_tile[0],
+                    tile=curr_tile[1],
+                    barcodes=barcodes,
+                    xs=xs,
+                    ys=ys,
+                    out_path=out_path,
+                    out_prefix=out_prefix,
+                    out_suffix=out_suffix,
+                )
+                barcodes, xs, ys = [[], [], []]
+            curr_tile = next_tile
+            barcodes.append(barcode)
+            xs.append(x)
+            ys.append(y)
+            if i % 10_000:
+                curr_byte = f.buffer.fileobj.tell()
+                pbar.update(curr_byte - last_byte)
+                last_byte = curr_byte
 
 
 def _run_barcode_preprocessing(args):
@@ -150,7 +163,8 @@ def _run_barcode_preprocessing(args):
         *[{True: lambda n: None, False: int}[x == ""](x) for x in (args.crop_seq.split(":") + ["", "", ""])[:3]]
     )
 
-    def sequence_preprocessor(sequence):
+    def sequence_preprocessor(sequence: str) -> str:
+        sequence = sequence.strip()
         sequence = sequence[crop_seq_slice].strip()
         if args.rev_comp:
             sequence = reverse_complement_table(sequence)
@@ -158,18 +172,13 @@ def _run_barcode_preprocessing(args):
 
     start_time = time.time()
 
-    if not args.single_tile and not args.unsorted:
-        process_multiple_tiles(args.in_fastq, args.out_path, args.out_prefix, args.out_suffix, sequence_preprocessor)
-    elif not args.single_tile and args.unsorted:
-        raise NotImplementedError("We don't support multi-tile files with unsorted tiles yet!")
-    else:
-        df = process_single_tile(args.in_fastq, sequence_preprocessor)
-        print(f"Writing {len(df):,} barcodes to {os.path.join(args.out_path, args.out_prefix + args.out_suffix)}")
-        df.to_csv(
-            os.path.join(args.out_path, args.out_prefix + args.out_suffix),
-            index=False,
-            sep="\t",
-        )
+    process_multiple_unsorted_tiles(
+        in_fastq=args.in_fastq,
+        out_path=args.out_path,
+        out_prefix=args.out_prefix,
+        out_suffix=args.out_suffix,
+        sequence_preprocessor=sequence_preprocessor,
+    )
 
     print(f"Finished in {round(time.time()-start_time, 2)} sec")
 
