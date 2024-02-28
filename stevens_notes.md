@@ -12,11 +12,11 @@
         ```
         pip install -e <openst_repo>
         ```
-1. generate barcode coordinate files for each tile (tile = puck)
+1. generate barcode coordinate files for each tile (tile = puck). **CURRENTLY UNTESTED, SEQUENCING DATA FROM BARCODE REGISTRATION STEP NOT PROVIDED** (only have the resulting barcode coordinate matrices).
     ```
     openst barcode_preprocessing \
-    --in-fastq data/adult_mouse_hippocampus/adult_mouse_hippocampus_R1_001.fastq.gz \
-    --out-path tile-barcode-coords/adult_mouse_hippocampus \
+    --in-fastq adult_mouse_hippocampus/data/barcode_registration_R1.fastq.gz \
+    --out-path adult_mouse_hippocampus/data/tiles \
     --out-prefix "" \
     --out-suffix ".txt" \
     --crop-seq 2:27
@@ -33,46 +33,43 @@
         pip install pulp==2.7.0
         ```
     1. [download Dropseq-tools version 2.5.1](https://github.com/broadinstitute/Drop-seq/releases/download/v2.5.1/Drop-seq_tools-2.5.1.zip). unzip somewhere
+    1. [download genome & annotation files](https://www.gencodegenes.org)
     1. install in editable mode
         ```
         pip install -e <spacemake_repo>
         ```
     1. make a directory for spacemake runs. run all subsequent steps from within this directory.
-    1. initialize spacemake and download genome & annotation files
+    1. initialize spacemake 
         ```
         spacemake init \
-        --dropseq_tools <unzipped_dropseq_tools> \
-        --download_species
+        --dropseq_tools <unzipped_dropseq_tools>
         ```
-        1. copies `config.yaml` and `puck_data` into the current directory. `puck_data/openst_coordinate_system.csv` has the coordinate offset for each tile so tile coordinates can be translated as flowcell coordinates. (on the [data download page](https://rajewsky-lab.github.io/openst/latest/examples/datasets/#barcode-spatial-coordinates-and-coordinate-systems), a little unclear how `fc_1` and `fc_2` coordinate files differ)
-        1. downloads `.fa` and `.gtf` files for `human` and `mouse`
-    1. **this step is not necessary if using the downloaded human or mouse genomes from the last step**. if you move the genome files, can just update their paths in `config.yaml`. otherwise configure spacemake with the `species`. all other configuration _should_ be the shipped with `v0.7.4` (specifically, `barcode_flavor`, `puck`, and `run_mode` should already be configured in `config.yaml`).
+        1. copies `config.yaml` and `puck_data` into the current directory. `puck_data/openst_coordinate_system.csv` has the coordinate offset for each tile relative to the flowcell, so tile coordinates can be translated to flowcell coordinates. replace `openst_coordinate_system.csv` as necessary.
+    1. configure spacemake with the `species`. I used `GRCm39.genoma.fa` and `gencode.vM34.annotation.gtf` from gencode M34.
         ```
         spacemake config add_species \
         --name mouse \
         --sequence <genome.fa> \
         --annotation <annotation.gtf>
         ```
-    1. **NB** the provided run mode configuration overlays a hexagonal mesh over the coordinate grid. spots are aggregated into these hexagonal patches instead
 1. add samples to project and run spacemake. i.e. generate expression matrix.
-    1. need to tiles into separate fastqs???
     1. add samples to project
         ```
         spacemake projects add_sample \
         --project_id adult_mouse_hippocampus \
-        --sample_id 1_1101 \
-        --R1 data/adult_mouse_hippocampus/1_1101_R1.fastq.gz \
-        --R2 data/adult_mouse_hippocampus/1_1101_R2.fastq.gz \
+        --sample_id sample1 \
+        --R1 adult_mouse_hippocampus/data/1_1101_R1.fastq.gz \
+        --R2 adult_mouse_hippocampus/data/1_1101_R2.fastq.gz \
         --species mouse \
         --puck openst \
         --run_mode openst \
         --barcode_flavor openst \
-        --puck_barcode_file tile-barcode-coords/adult_mouse_hippocampus/1_1101.txt
+        --puck_barcode_file adult_mouse_hippocampus/data/tiles/* \
+        --map_strategy "STAR:genome:final"
         ```
     1. run spacemake
         ```
         spacemake run \
-        --cores <n_cores> \
-        --keep-going
+        --cores <n_cores>
         ```
 1. stitch pucks together (`openst spatial_stitch`) to generate one expression matrix
