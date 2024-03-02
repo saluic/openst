@@ -19,7 +19,8 @@
     --out-path adult_mouse_hippocampus/data/tiles \
     --out-prefix "L3_tile_" \
     --out-suffix ".txt.gz" \
-    --crop-seq 5:30
+    --crop-seq 5:30 \
+    --rev-comp
     ```
     1. **NB** make sure `--out-suffix` is `.txt` (because of [this line](https://github.com/rajewsky-lab/spacemake/blob/50291f2bfba2df93b5a9c4fd397b6782c2a88e98/spacemake/snakemake/scripts/n_intersect_sequences.py#L213) - only hinted at in the openst docs)
 1. install, initialize, and configure spacemake. spacemake processes fastqs into the expression matrix.
