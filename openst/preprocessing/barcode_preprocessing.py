@@ -96,7 +96,8 @@ def append_barcodes_to_disk(
     out_prefix: str,
     out_suffix: str,
 ) -> None:
-    fname = f"{lane}_{tile}"
+    # fname = f"{lane}_{tile}"
+    fname = f"{tile}"
     fpath = os.path.join(out_path, f"{out_prefix}{fname}{out_suffix}")
     df = pd.DataFrame({"cell_bc": barcodes, "xcoord": xs, "ycoord": ys})
 
@@ -174,6 +175,7 @@ def _run_barcode_preprocessing(args):
     )
 
     def sequence_preprocessor(sequence: str) -> str:
+        # slice --> translate --> reverse
         sequence = sequence.strip()
         sequence = sequence[crop_seq_slice].strip()
         if args.rev_comp:
