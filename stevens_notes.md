@@ -58,8 +58,8 @@
         spacemake projects add_sample \
         --project_id adult_mouse_hippocampus \
         --sample_id sample1 \
-        --R1 adult_mouse_hippocampus/data/1_1101_R1.fastq.gz \
-        --R2 adult_mouse_hippocampus/data/1_1101_R2.fastq.gz \
+        --R1 adult_mouse_hippocampus/data/adult_mouse_hippocampus_R1_001.fastq.gz \
+        --R2 adult_mouse_hippocampus/data/adult_mouse_hippocampus_R2_001.fastq.gz \
         --species mouse \
         --puck openst \
         --run_mode openst \

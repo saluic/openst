@@ -156,6 +156,16 @@ def process_multiple_unsorted_tiles(
                 curr_byte = f.buffer.fileobj.tell()
                 pbar.update(curr_byte - last_byte)
                 last_byte = curr_byte
+    append_barcodes_to_disk(
+        lane=curr_tile[0],
+        tile=curr_tile[1],
+        barcodes=barcodes,
+        xs=xs,
+        ys=ys,
+        out_path=out_path,
+        out_prefix=out_prefix,
+        out_suffix=out_suffix,
+    )
 
 
 def _run_barcode_preprocessing(args):
