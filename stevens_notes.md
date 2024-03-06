@@ -59,7 +59,7 @@
         spacemake init \
         --dropseq_tools <unzipped_dropseq_tools>
         ```
-        1. copies `config.yaml` and `puck_data` into the current directory. `puck_data/openst_coordinate_system.csv` has the coordinate offset for each tile relative to the flowcell, so tile coordinates can be translated to flowcell coordinates. replace `openst_coordinate_system.csv` as necessary.
+        1. copies `config.yaml` and `puck_data` into the current directory. `puck_data/openst_coordinate_system.csv` has the coordinate offset for each tile relative to the flowcell, so tile coordinates can be translated to flowcell coordinates. replace `openst_coordinate_system.csv` as necessary. also disable hexagonal meshing...
     1. configure spacemake with the `species`. I used `GRCm39.genoma.fa` and `gencode.vM34.annotation.gtf` from gencode M34.
         ```
         spacemake config add_species \
