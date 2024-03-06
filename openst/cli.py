@@ -17,6 +17,7 @@ from openst.segmentation.segment_merge import setup_segment_merge_parser
 from openst.threed.from_3d_registration import \
     setup_from_3d_registration_parser
 from openst.threed.to_3d_registration import setup_to_3d_registration_parser
+from openst.preprocessing.filter_sample_barcodes import setup_filter_sample_barcodes_parser
 
 
 def cmdline_args():
@@ -53,6 +54,8 @@ def cmdline_args():
     setup_from_3d_registration_parser(parent_parser_subparsers)
     # create the parser for the "barcode_preprocessing" command
     setup_barcode_preprocessing_parser(parent_parser_subparsers)
+    # create the parser for the "filter_sample_barcodes" command
+    setup_filter_sample_barcodes_parser(parent_parser_subparsers)
 
     return parent_parser, parent_parser.parse_args()
 

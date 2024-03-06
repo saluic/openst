@@ -15,14 +15,28 @@
 1. generate barcode coordinate files for each tile (tile = puck).
     ```
     openst barcode_preprocessing \
-    --in-fastq adult_mouse_hippocampus/data/barcode_registration_R1.fastq.gz \
-    --out-path adult_mouse_hippocampus/data/tiles \
+    --in-fastq fc/barcode_registration_R1.fastq.gz \
+    --out-path fc/raw_tiles \
     --out-prefix "L3_tile_" \
     --out-suffix ".txt.gz" \
     --crop-seq 5:30 \
     --rev-comp
     ```
-    1. **NB** make sure `--out-suffix` is `.txt` (because of [this line](https://github.com/rajewsky-lab/spacemake/blob/50291f2bfba2df93b5a9c4fd397b6782c2a88e98/spacemake/snakemake/scripts/n_intersect_sequences.py#L213) - only hinted at in the openst docs)
+    1. **NB** make sure `--out-suffix` is `.txt` or `.txt.gz` (because of [this line](https://github.com/rajewsky-lab/spacemake/blob/50291f2bfba2df93b5a9c4fd397b6782c2a88e98/spacemake/snakemake/scripts/n_intersect_sequences.py#L213) - only hinted at in the openst docs)
+1. post process the barcode files for a given sample
+    1. a convenient way to do this is to make a folder of symlinks to the specific tiles for a sample
+        ```
+        mkdir adult_mouse_hippocampus/data/raw_tiles
+        for F in {tile1,tile2,[...],tileN}; \
+        do ln -s fc/raw_tiles/$F adult_mouse_hippocampus/data/raw_tiles/$F; \
+        done
+        ```
+    1. run deduplication/filtering
+        ```
+        openst filter_sample_barcodes \
+        --sample-barcode-files adult_mouse_hippocampus/data/raw_tiles/* \
+        --out-path adult_mouse_hippocampus/data/tiles
+        ```
 1. install, initialize, and configure spacemake. spacemake processes fastqs into the expression matrix.
     1. spacemake >= `v0.7.4` ships with openst configurations ([PR #83](https://github.com/rajewsky-lab/spacemake/pull/83)), but this version is not on pypi yet. need to install from source, clone repo: https://github.com/rajewsky-lab/spacemake
     1. _**update**_ openst environment with `<spacemake_repo>/environment.yaml`
