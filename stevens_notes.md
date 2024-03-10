@@ -88,4 +88,11 @@
         --cores <n_cores>
         ```
 1. stitch pucks together (`openst spatial_stitch`) to generate one expression matrix
+    ```
+    openst spatial_stitch \
+    --tiles adult_mouse_hippocampus/processed_data/sample1/illumina/complete_data/dge/dge.all.polyA_adapter_trimmed.mm_included.spatial_beads_*.h5ad \
+    --tile-coordinates adult_mouse_hippocampus/data/fc_2_coordinate_system.csv \
+    --output adult_mouse_hippocampus/spacemake/stitched.h5ad
+    ```
+1. alignment
     1. use anndata.obsm["spatial"] for capture-area coordinates (vs anndata.obs["x/y_pos"])
