@@ -88,3 +88,4 @@
         --cores <n_cores>
         ```
 1. stitch pucks together (`openst spatial_stitch`) to generate one expression matrix
+    1. use anndata.obsm["spatial"] for capture-area coordinates (vs anndata.obs["x/y_pos"])

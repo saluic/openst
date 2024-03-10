@@ -5,10 +5,13 @@ from typing import List, Union
 import numpy as np
 from anndata import AnnData, concat, read_h5ad
 
-from openst.utils.file import (check_directory_exists, check_file_exists,
-                               check_obs_unique)
+from openst.utils.file import (
+    check_directory_exists,
+    check_file_exists,
+    check_obs_unique,
+)
 
-DEFAULT_REGEX_tile_ID = "(L[1-4][a-b]_tile_[1-2][0-7][0-9][0-9])"
+DEFAULT_REGEX_tile_ID = "(L[1-4][a-b]?_tile_[1-2][0-7][0-9][0-9])"
 
 
 def get_spatial_stitch_parser():
@@ -164,7 +167,9 @@ def create_spatial_stitch(
         - This function can reset the index and apply spatial transformation to create a tile collection.
     """
     if reset_index:
-        tile.obs_names = tile.obs_names.astype(str) + ":" + tile.obs["tile_id"].astype(str)
+        tile.obs_names = (
+            tile.obs_names.astype(str) + ":" + tile.obs["tile_id"].astype(str)
+        )
 
     if transform:
         tile = _transform_tile(tile, tile_transform)
@@ -191,7 +196,9 @@ def parse_tile_id_from_path(f: str, tile_id_regex: str = DEFAULT_REGEX_tile_ID):
     tile_id = re.findall(rf"{tile_id_regex}", bname)
 
     if len(tile_id) > 1:
-        logging.warn("Found more than one tile_id in the path. First one (index 0) will be used.")
+        logging.warn(
+            "Found more than one tile_id in the path. First one (index 0) will be used."
+        )
 
     tile_id = tile_id[0]
 
@@ -199,7 +206,7 @@ def parse_tile_id_from_path(f: str, tile_id_regex: str = DEFAULT_REGEX_tile_ID):
 
 
 def read_tiles_to_list(
-    f: Union[str, List[str]],
+    fs: Union[str, List[str]],
     tile_id: Union[int, List[int], None] = None,
     tile_id_regex: str = DEFAULT_REGEX_tile_ID,
     tile_id_key: str = "tile_id",
@@ -208,7 +215,7 @@ def read_tiles_to_list(
     Read tile data from one or more files into a list of AnnData objects.
 
     Args:
-        f (Union[str, List[str]]): File path or list of file paths to read tiles from.
+        fs (Union[str, List[str]]): File path or list of file paths to read tiles from.
         tile_id (Union[int, List[int], None], optional): Tile ID or list of tile IDs. Defaults to None.
         tile_id_regex (str, optional): Regular expression pattern for extracting tile IDs from file paths.
                                        Defaults to DEFAULT_REGEX_tile_ID.
@@ -217,17 +224,19 @@ def read_tiles_to_list(
     Returns:
         List[AnnData]: List of AnnData objects representing tiles.
     """
-    if type(f) is str:
-        f = [f]
+    if type(fs) is str:
+        fs = [fs]
 
     if tile_id is not None and type(tile_id) is str:
         tile_id = [tile_id]
-    elif type(tile_id) is list and len(tile_id) != len(f):
-        raise ValueError(f"Dimensions for f ({len(f)}) and tile_id ({len(tile_id)}) are not compatible")
+    elif type(tile_id) is list and len(tile_id) != len(fs):
+        raise ValueError(
+            f"Dimensions for fs ({len(fs)}) and tile_id ({len(tile_id)}) are not compatible"
+        )
 
     tiles = []
 
-    for i, f in enumerate(f):
+    for i, f in enumerate(fs):
         _f_obj = read_h5ad(f)
 
         if "spatial" not in _f_obj.obsm.keys():
@@ -248,7 +257,9 @@ def read_tiles_to_list(
             _f_obj.obs["tile_id"] = _tile_id
 
         if not check_obs_unique(_f_obj, "tile_id"):
-            raise ValueError(f"tile_id exist in AnnData object but are not unique for the tile in file {f}")
+            raise ValueError(
+                f"tile_id exist in AnnData object but are not unique for the tile in file {f}"
+            )
 
         tiles.append(_f_obj)
 
@@ -269,7 +280,10 @@ def parse_tile_coordinate_system_file(f: str):
 
     cs = pd.read_csv(f, sep="[,|\t]", engine="python")
 
-    cs = cs.set_index("tile_id")
+    tile_id_key = "tile_id" if "tile_id" in cs.columns else "puck_id"
+    temp = cs[tile_id_key].str.findall(DEFAULT_REGEX_tile_ID)
+    cs[tile_id_key] = temp.str[0]  # hack .str accessor to get indices of list
+    cs = cs.set_index(tile_id_key)
 
     cs = cs.loc[~cs.index.duplicated(keep="first")]
 
@@ -312,11 +326,15 @@ def merge_tiles_to_collection(
     spatial_stitch_list = []
 
     for tile in tiles_list:
-        spatial_stitch_list += [create_spatial_stitch(tile, tile_transform, ~no_reset_index, ~no_transform)]
+        spatial_stitch_list += [
+            create_spatial_stitch(tile, tile_transform, ~no_reset_index, ~no_transform)
+        ]
 
     spatial_stitch = concat(spatial_stitch_list, merge=merge_output, join=join_output)
 
-    spatial_stitch.uns = {np.unique(tile.obs[tile_id_key])[0]: tile.uns for tile in spatial_stitch_list}
+    spatial_stitch.uns = {
+        np.unique(tile.obs[tile_id_key])[0]: tile.uns for tile in spatial_stitch_list
+    }
 
     return spatial_stitch
 
