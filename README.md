@@ -1,19 +1,22 @@
 [![docs](https://github.com/rajewsky-lab/openst/actions/workflows/docs.yml/badge.svg)](https://github.com/rajewsky-lab/openst/actions/workflows/docs.yml)
+[![Publish Docker image](https://github.com/rajewsky-lab/openst/actions/workflows/docker_hub.yml/badge.svg)](https://github.com/rajewsky-lab/openst/actions/workflows/docker_hub.yml)
 [![Downloads](https://pepy.tech/badge/openst)](https://pepy.tech/project/openst)
 [![PyPI Version](https://img.shields.io/pypi/v/openst.svg)](https://pypi.org/project/openst)
 [![PyPI License](https://img.shields.io/pypi/l/openst.svg)](https://pypi.org/project/openst)
 [![Gitter chat](https://badges.gitter.im/openst/community.png)](https://gitter.im/openst/community)
-[![ci](https://github.com/rajewsky-lab/openst/actions/workflows/docs.yml/badge.svg)](https://github.com/rajewsky-lab/openst/actions/workflows/docs.yml)
 
 <img
   src="https://raw.githubusercontent.com/rajewsky-lab/openst/5617df9d35341778487d4c623eaac53b61000006/docs/static/img/openst_logo_color.png"
   class="dark-light" align="right" width="350" alt="image"
 />
 
-# Open-ST: democratizing spatial transcriptomics
-Open-ST is an open-source [spatial transcriptomics](https://en.wikipedia.org/wiki/Spatial_transcriptomics) method 
+# Open-ST: open-source spatial transcriptomics
+
+### [🌐 website](https://rajewsky-lab.github.io/openst/latest) | [📜 paper](https://authors.elsevier.com/c/1jJckL7PXqR3U) | [🐁 datasets](https://rajewsky-lab.github.io/openst/latest/examples/datasets/)
+
+Open-ST is an open-source spatial transcriptomics method 
 with efficient whole-transcriptome capture at sub-cellular resolution (0.6 μm) at low cost 
-(<150 Euro library preparation per 12 mm^2).
+(<150 Euro library preparation per 12 mm²).
 
 Open-ST requires standard lab equipment
 and includes open-source software for seamless data processing and analysis.

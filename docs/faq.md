@@ -52,7 +52,7 @@ In order to avoid any RNA contamination is important to wipe down the cryostat a
 [__What pepsin incubation times should I test?__](#pepsin-incubation){ #pepsin-incubation }
 
 It is important to set the permeabilization condition for each tissue type. 
-We recommend to test at least a range including 15 min, 30 min, and 60 min with two different concentration (0.7 and 1.4 U/uL). 
+We recommend to test at least a range including 15 min, 30 min, and 60 min with two different concentration (0.7 and 1.4 U/μL). 
 
 It is preferable to chose the minimum incubation time/ enzyme concentration that
 gives the maximum RNA capture (see [Permeabilization](experimental/library_preparation.md#permeabilization)).
@@ -66,17 +66,17 @@ Here, we list the tested tissues with the permeabilization condition used:
 
     | Tissue type      | Permeabilization condition (time, pepsin concentration)|
     | ----------- | ----------- | 
-    | Metastatic lymph node     | 45 min, 1.4 U/uL| 
-    | Healthy  lymph node | 45 min, 1.4 U/uL|
-    | Head and neck squamous cell carcinoma| 45 min, 1.4 U/uL | 
-    | iPSC-derived Brain Organoids | 15 - 30 min, 0.7 U/uL|
+    | Metastatic lymph node     | 45 min, 1.4 U/μL| 
+    | Healthy  lymph node | 45 min, 1.4 U/μL|
+    | Head and neck squamous cell carcinoma| 45 min, 1.4 U/μL | 
+    | iPSC-derived Brain Organoids | 15 - 30 min, 0.7 U/μL|
 
 === "Mouse"
 
     | Tissue type      | Permeabilization conditions|
     | ----------- | ----------- | 
-    | Mouse head (embryo E13)| 30 min, 0.7 U/uL|
-    | Mouse brain| 30 min, 0.7 U/uL|
+    | Mouse head (embryo E13)| 30 min, 0.7 U/μL|
+    | Mouse brain| 30 min, 0.7 U/μL|
 
 ## Capture area
 [__Can you store capture area pieces?__](#store-capture-areas){ #store-capture-areas }
@@ -129,7 +129,7 @@ Shallow sequencing can always be performed first to assess general library quali
 
 
 ## Pairwise alignment
-[__The fiducial marks cannot be detected/are not visible)__](#fiducial-alignment){ #fiducial-alignment }
+[__The fiducial marks cannot be detected/are not visible__](#fiducial-alignment){ #fiducial-alignment }
 
 Sometimes, fiducial marks might not be visible when imaging thick tissue (we have noticed this with > 10 µm thickness) or under areas with high cellular density. Thus, automatic coarse alignment will work, but the fine alignment might fail, as the model cannot find these markers in the image. 
 
@@ -139,12 +139,12 @@ In the latter case, we cannot ensure that the alignment accuracy will lead to su
 
 [__In manual alignment mode, how many fiducials/features should I select per tile?__](#n-features-fiducial){ #n-features-fiducial }
 
-Given that a rgiid transformation model is estimated from the selected pairs of keypoints, we recommend at least 2 points. The more corresponding points are selected, the better.
+Given that a rigid transformation model is estimated from the selected pairs of keypoints, we recommend at least 2 points. The more corresponding points are selected, the better.
 
 ## Image segmentation
 
 [__The segmentation did not perform well__](#segmentation-model){ #segmentation-model }
 
-We provide an interface to the default, pre-trained cellpose models, as well as our fine-tuned openst_he model. We have tested this on a wide diversity of tissues, but it is possible that different microscopy setups and imaged tissues deliver different segmentation performance. 
+We provide an interface to the default, pre-trained cellpose models, as well as our fine-tuned [HE_cellpose_rajewsky](http://bimsbstatic.mdc-berlin.de/rajewsky/openst-public-data/models/HE_cellpose_rajewsky) model. We have tested this on a wide diversity of tissues, but it is possible that different microscopy setups and imaged tissues deliver different segmentation performance. 
 
 Especially, tissues with higher cellular densities and lower contrast between background/nuclei (or cells) might perform worse. Thus, we recommend referring to the [cellpose tutorial](https://cellpose.readthedocs.io/en/latest/gui.html#training-your-own-cellpose-model) on how to train your own model.

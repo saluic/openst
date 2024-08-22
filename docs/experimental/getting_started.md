@@ -3,7 +3,7 @@
 ??? example "Reagents"
     |REAGENT|SOURCE|IDENTIFIER|
         |----|----|----|
-        | Dra I enzyme|NEB|Cat#R0129|
+        |Dra I enzyme|NEB|Cat#R0129|
         |Alkaline Phosphatase Calf Intestinal (CIAP) enzyme|Promega|Cat#M1821|
         |Exonuclease I enzyme|NEB|Cat#M0293|
         |NaOH solution for molecular biology 10 M in H2O|Sigma|Cat#72068|
@@ -25,7 +25,7 @@
         |Sodium chloride NaCl (5M), RNase-free|Invitrogen|Cat#AM9760G|
         |Roti®-Stock 20 % SDS ready-to-use, sterile filtered|Roth|Cat#1057.1|
         |UltraPure 0.5M EDTA, pH 8.0|Life Technologies|Cat#15575020|
-        |Proteinase K (800 mU/uL)|NEB|Cat#P8107S|
+        |Proteinase K (800 mU/μL)|NEB|Cat#P8107S|
         |DNA Polymerase Large Fragment exo- Klenow Fragment (3'-5' exo-)|NEB|Cat#M0212|
         |Ampure XP beads|Beckman coulter|Cat#A63881|
         |Kapa HiFi Hotstart Readymix KK2612|Roche|Cat#7958960001|
@@ -54,10 +54,10 @@
     - Cryostat 
     - Heating block (*Can also use hybridisation oven for pre-warming pepsin.*)
     - Hybridization oven 
-    - Brightfield imaging system *add objective requirements, camera*
+    - Brightfield microscope with camera *we image using a 20x objective*
     - Thermocycler 
     - qPCR machine 
-    - Bluepippin or PippinHT (*alternatively, use manual agarose gel setup and DNA extraction*)
+    - Bluepippin or PippinHT (*alternatively, manual run an agarose gel and cut band of desired size range to extract cDNA from*)
     - Automated gel electrophoresis machine (eg. Tapestation or BioAnalyzer)
-    - Qubit fluorometer   
+    - Qubit fluorometer (*or alternative instrument for measuring DNA concentration*)   
     - 3D printer (If you don't have a 3D printer, you can check for [3D printing services near you](https://www.google.com/search?q=3d+printing+service+near+me)) 
