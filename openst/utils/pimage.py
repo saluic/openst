@@ -1,11 +1,13 @@
 import dask
 import numpy as np
+import logging
 
 from dask_image.ndmorph import binary_dilation as dask_binary_dilation
 from dask_image.ndfilters import gaussian as dask_gaussian
 from scipy.ndimage import binary_dilation as scipy_binary_dilation
 from skimage.filters import threshold_otsu
 from skimage.filters import gaussian as skimage_gaussian
+from skimage.color import rgb2hsv as skimage_rgb2hsv
 
 HI_NUM_ITER = 100
 
@@ -83,7 +85,7 @@ def dask_threshold_otsu(image=None, nbins=256):
 
     """
     if image is not None and image.ndim > 2 and image.shape[-1] in (3, 4):
-        print(f'threshold_otsu is expected to work correctly only for '
+        logging.warn(f'threshold_otsu is expected to work correctly only for '
              f'grayscale images; image shape {image.shape} looks like '
              f'that of an RGB image.')
 
@@ -132,7 +134,7 @@ def _prepare_colorarray(arr, channel_axis=-1):
     return arr.astype(float)
 
 
-def rgb2hsv(rgb, *, channel_axis=-1):
+def dask_rgb2hsv(rgb, *, channel_axis=-1):
     """RGB to HSV color space conversion.
 
     Parameters:
@@ -172,7 +174,7 @@ def rgb2hsv(rgb, *, channel_axis=-1):
 
     if type(rgb) is dask.array.Array:
         out_h = np.zeros_like(out_s)
-        print("Hue channel not implemented when using dask array")
+        logging.warn("Hue channel not implemented when using dask array")
     else:
         # -- H channel
         # red is max
@@ -222,7 +224,10 @@ def mask_tissue(
     Returns:
         list: A list containing prepared images after applying the specified processing steps.
     """
-    hsv_image = rgb2hsv(image)
+    if isinstance(image, np.ndarray):
+        hsv_image = skimage_rgb2hsv(image)
+    elif isinstance(image, dask.array.Array):
+        hsv_image = dask_rgb2hsv(image)
 
     if type(image) is dask.array.Array:
         s_image_gaussian = dask_gaussian(hsv_image[..., 1], sigma=mask_gaussian_blur)
@@ -242,7 +247,6 @@ def mask_tissue(
     image_out = ((image_out / image_out.max()) * 255).astype(int)
     hsv_image_out = ((hsv_image_out / hsv_image_out.max()) * 255).astype(int)
 
-    print("background removal (optional)")
     if not keep_black_background:
         image_out = np.where(
             image_out == np.array([[0, 0, 0]]),
@@ -260,3 +264,22 @@ def mask_tissue(
         return image_out, hsv_image_out
     else:
         return image_out
+    
+
+
+def is_grayscale(image):
+    """
+    Check if an image is grayscale (2D).
+
+    Parameters:
+        image (numpy.ndarray): Input image.
+
+    Returns:
+        bool: True if the image is grayscale (2D), False otherwise.
+    """
+    if isinstance(image, np.ndarray):
+        if len(image.shape) == 2:
+            return True
+        elif len(image.shape) == 3 and image.shape[2] == 1:
+            return True
+    return False

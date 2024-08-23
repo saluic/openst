@@ -10,27 +10,27 @@ For instance, you can get ~360 capture areas sized 3x4 mm from a single **Illumi
 
 When using an **Illumina® NovaSeq 6000 S4** flow cell (35 cycles), sequence the HDMI32-DraI library
 (see in [Oligonucleotides](getting_started.md)) at a loading concentration of 200 pM. 
-Using 200 pM library, loaded according to the KAPA qPCR value, we obtained the following quality metrics for the barcoded fc_1 used in our [our preprint](https://www.biorxiv.org/content/10.1101/2023.12.22.572554v1.article-info): Q30 >= 86%; PF = 78%; occupied = 97%. Although great results were achieved using this flow cell, 97% occupied is high. Consequently, we suggest to use a titration of library loading concentrations (one concentration per lane) when generating your first barcoded flow cell. 
+Using 200 pM library, loaded according to the KAPA qPCR value, we obtained the following quality metrics for the barcoded fc_1 used in our [our paper](https://authors.elsevier.com/c/1jJckL7PXqR3U): Q30 >= 86%; PF = 78%; occupied = 97%. Although great results were achieved using this flow cell, 97% occupied is high. Consequently, we suggest to use a titration of library loading concentrations (one concentration per lane) when generating your first barcoded flow cell. 
 
 Sequence a single-end 37 cycle read, using Read1-DraI oligo as a custom primer.
 Use a custom sequencing [recipe](../static/metadata_files/NovaSeq6000_S4_barcoding_seq_recipe.xml) that stops the run immediately after read 1 prior to on-instrument washes. 
 
 !!! Note
-    The custom recipe published in our bioarchive pre-print and linked above was provided by Illumina Technical Support. It was used in a sequencing run with the following versions: RTA v3.4.4, Flow Cell Consumable v1, Sbs Consumable v3, NovaSeq control Software v 1.7.5 (in the pre-print) and v 1.8.1 (in an independent flow cell with no published data). Be aware that the custom recipe may change with different versions.  
+    The custom recipe published in our bioarchive pre-print and linked above was provided by Illumina Technical Support. It was used in a sequencing run with the following versions: reagent kit v1.5, RTA v3.4.4, Flow Cell Consumable v1, Sbs Consumable v3, NovaSeq control Software v 1.7.5 (in the pre-print) and v 1.8.1 (in an independent flow cell with no published data). Be aware that the custom recipe may change with different versions.  
     
 ### Expected (data) output
 Either when using your own sequencing equipment or relying on a sequencing facility, you will get access
 to (most likely) already [demultiplexed](https://knowledge.illumina.com/software/general/software-general-troubleshooting-list/000005982)
 `fastq` files; otherwise, you can get access to *raw* basecall files in `bcl` [format](https://support.illumina.com/content/dam/illumina-support/help/Illumina_DRAGEN_Bio_IT_Platform_v3_7_1000000141465/Content/SW/Informatics/Dragen/ToolsiBCL_fDG.htm).
 
-Either of these files shall be used as the input for `openst` [later](../computational/preprocessing_sequencing.md#processing-the-sequencing-of-barcoded-library),
+Either of these files shall be used as the input for `openst` [later](../computational/preprocessing_capture_area.md#processing-the-sequencing-of-barcoded-library),
 to create a database of barcode sequences and their spatial locations.
 
 ## Enzymatic processing
 
 !!! Tip "Tips" 
 
-    - Prepare mixes in excess. ~300 uL per lane is required for the S4 flow cell.
+    - Prepare mixes in excess. ~300 μL per lane is required for the S4 flow cell.
     - If bubbles occur, mark these with pen on the flow cell. Repeat reactions if many bubbles occur and ensure bubbles do not form at the same locations. 
     - Use a P1000 pipette and pipette slowly to avoid the formation of bubbles. 
     - For removing washes, pipette the liquid out and then blow through air using the P1000 to remove remaining liquid.
@@ -39,28 +39,28 @@ to create a database of barcode sequences and their spatial locations.
 
 **DraI mix**
 
-|Reagent|Final concentration|Volume (uL)|
+|Reagent|Final concentration|Volume (μL)|
 |----|----|----|
-|DraI|2U/uL|10|
+|DraI|2U/μL|10|
 |10X CutSmart buffer|1x|10|
 |Ultrapure water||80|
 
-1. Wash flow cell by flowing through 500 uL ultrapure water using a P1000 pipette.  
+1. Wash flow cell by flowing through 500 μL ultrapure water using a P1000 pipette.  
 2. Add DraI mix and incubate at 37°C overnight.
 
 ### Exonucelase I digestion 
 
 **ExoI mix**
 
-| Reagent | Final concentration | Volume (uL) |
+| Reagent | Final concentration | Volume (μL) |
 |----|----|----|
-|ExoI|1 U/uL|5|
+|ExoI|1 U/μL|5|
 |10X ExoI buffer|1x|10|
 |Ultrapure water||85|
 
-1. Wash flow cell by flowing through 500 uL 80% ethanol, then ultrapure water.
+1. Wash flow cell by flowing through 500 μL 80% ethanol, then ultrapure water.
 2. Add Exonuclease I mix and incubate for 45 min at 37°C.
-3. Wash flow cell by flowing through 500 uL ultrapure water three times.
+3. Wash flow cell by flowing through 500 μL ultrapure water three times.
 
 ## Opening, denaturation and washes 
 

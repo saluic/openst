@@ -1,4 +1,4 @@
-# Preprocessing of sequencing
+# Preprocessing transcriptomic library
 
 After sequencing, we proceed with the preprocessing of the data, to go from raw reads to
 transcriptomic information mapped to the mouse genome, in space.
@@ -37,7 +37,7 @@ First of all, intialize the conda environment for `spacemake`
 (spacemake) user@computer:~$
 ```
 
-### Initialization
+### Initialize
 Create two folders inside your `openst_adult_demo` folder, called `spacemake` and `bins`, so you will have:
 
 ```sh
@@ -52,7 +52,7 @@ Create two folders inside your `openst_adult_demo` folder, called `spacemake` an
 Download the [DropSeq tools](https://github.com/broadinstitute/Drop-seq/releases/download/v2.5.4/Drop-seq_tools-2.5.4.zip),
 decompress it, and put it inside the `bins` subdirectory.
 
-Then, following the [spacemake *Quick start guide*](https://spacemake.readthedocs.io/en/latest/quick-start/index.html),
+Then, following the [spacemake *Quick start guide*](https://spacemake.readthedocs.io/en/latest/quick-start/index.html#open-st-quick-start),
 browse to the `spacemake` directory you just created in the `openst_adult_demo` folder, and run the initialization:
 
 ```sh
@@ -61,12 +61,12 @@ browse to the `spacemake` directory you just created in the `openst_adult_demo` 
     --dropseq_tools /home/user/bins/Drop-seq_tools-2.5.1
 ```
 
-### Configuring spacemake
+### Configure
 
 As `spacemake` comes with no default value for species, before anything can be done, a new species has to be added.
 In this case, we add mouse; you will need to download the correct `fa` and `gtf` files. For instance, you can download the
-mouse genome from [gencode](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M9/GRCm38.p4.genome.fa.gz),
-as well as the [annotation](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M9/gencode.vM9.annotation.gtf.gz).
+mouse genome from [gencode](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M30/GRCm39.genome.fa.gz),
+as well as the [annotation](https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M30/gencode.vM30.annotation.gtf.gz).
 
 Then, you need to run the following commands (remember, in the same `spacemake` folder as before, with the `spacemake` conda environment;
 we are going to omit `(spacemake) user@computer:/home/user/openst_adult_demo/spacemake$` for brevity).
@@ -75,24 +75,34 @@ we are going to omit `(spacemake) user@computer:/home/user/openst_adult_demo/spa
 spacemake config add_species \
    --name mouse \
    --reference genome \
-   --sequence <path_to_genome.fa> \
-   --annotation <path_to_genome_annotation.gtf>
+   --sequence GRCm39vM30.genome.fa \
+   --annotation gencodevM30.annotation.gtf
 
 spacemake config add_species \
    --name mouse \
    --reference rRNA \
-   --sequence <path_to_rRNA_sequences.fa>
+   --sequence mouse.rRNA.fa
 
 spacemake config add_species \
    --name mouse \
    --reference phiX \
-   --sequence <path_to_phiX_genome.fa>
+   --sequence phiX.fa
 ```
 
-### Adding sample
+!!! note
+    The `.fa` and `.gtf` files for mouse are available for http download under the [example datasets](../datasets.md) page.
+    For instance, you can run:
+
+    ```sh
+    # for the mouse genome sequence
+    wget "http://bimsbstatic.mdc-berlin.de/rajewsky/openst-public-data/genomes/GRCm39vM30.genome.fa"
+    # etc...
+    ```
+
+### Add sample
 
 Now you need to add the sample data and metadata to `spacemake`. For this, you will also need the puck (tile) barcode files, which [can be
-generated](../../computational/preprocessing_sequencing.md#computing-barcodes-and-spatial-coordinates-of-all-tiles) with the `openst` package.
+generated](../../computational/preprocessing_capture_area.md#computing-barcodes-and-spatial-coordinates-of-all-tiles) with the `openst` package.
 
 For simplicity, we provide the [tile barcode files](https://bimsbstatic.mdc-berlin.de/rajewsky/openst-public-data/adult_hippocampus_tiles.tar.xz) that are related to this sample, as well as the [coordinate system 
 for the Illumina flow cell](https://bimsbstatic.mdc-berlin.de/rajewsky/openst-public-data/fc_2_coordinate_system.csv) that was used to generate the capture area of this experiment.
@@ -101,19 +111,27 @@ When downloading the tile barcode files, create a folder under `openst_adult_dem
 into this folder. Also, move the coordinate file to the `puck_data` folder in the `spacemake` directory.
 
 Remember! You need to be in the `/home/user/openst_adult_demo/spacemake` directory (or similar, depending on what you created);
-then run the following command:
+then run the following commands:
 
 ```sh
+# downloading R1 and R2 sequences
+wget "http://bimsbstatic.mdc-berlin.de/rajewsky/openst-public-data/adult_mouse_hippocampus_R1_001.fastq.gz"
+wget "http://bimsbstatic.mdc-berlin.de/rajewsky/openst-public-data/adult_mouse_hippocampus_R2_001.fastq.gz"
+
+# downloading the spatial barcode sequences
+wget "http://bimsbstatic.mdc-berlin.de/rajewsky/openst-public-data/adult_hippocampus_tiles.tar.xz"
+tar -xvf adult_hippocampus_tiles.tar.xz
+
 spacemake projects add_sample \
     --project_id openst_demo \
     --sample_id openst_demo_adult_mouse \
-    --R1 <path_to_R1.fastq.gz> \
-    --R2 <path_to_R2.fastq.gz> \
+    --R1 adult_mouse_hippocampus_R1_001.fastq.gz \
+    --R2 adult_mouse_hippocampus_R2_001.fastq.gz \
     --species mouse \
     --puck openst \
     --run_mode openst \
     --barcode_flavor openst \
-    --puck_barcode_file tiles/*.txt.gz \
+    --puck_barcode_file adult_hippocampus_tiles/*.txt.gz \
     --map_strategy "bowtie2:phiX->bowtie2:rRNA->STAR:genome:final"
 ```
 
@@ -122,7 +140,7 @@ after you run the `spacemake init` command (see above). Modify the following lin
 
 ```yaml
 openst:
-    coordinate_system: puck_id/openst_coordinates.csv
+    coordinate_system: puck_data/openst_coordinates.csv
     spot_diameter_um: 0.6
     width_um: 1200
 ```
@@ -131,12 +149,20 @@ into this:
 
 ```yaml
 openst:
-    coordinate_system: puck_id/openst_demo_adult_brain_coordinate_system.csv
+    coordinate_system: puck_data/fc_2_coordinate_system.csv
     spot_diameter_um: 0.6
     width_um: 1200
 ```
 
-### Running `spacemake`
+You can download the coordinate system file from the Open-ST website, for example:
+
+```sh
+# download the coordinate system
+wget "http://bimsbstatic.mdc-berlin.de/rajewsky/openst-public-data/fc_2_coordinate_system.csv"
+cp fc_2_coordinate_system.csv puck_data/.
+```
+
+### Run
 That's all you need to configure! Now, you can run spacemake with the following:
 
 ```sh
@@ -162,4 +188,4 @@ If you specified options for *meshing* in the `run_mode`, there will be a file c
 This contains *approximate* cell-by-gene information, as the transcripts are aggregated by a regular lattice and not by the true spatial arrangement of
 cells. This might be already enough for some analyses. 
 
-Anyway... keep going with the tutorial if you want to unleash the full potential of Open-ST 😉.
+Anyway... keep going with the tutorial if you want to unleash the full potential of Open-ST.

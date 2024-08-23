@@ -1,103 +1,150 @@
-# Generating a cell-by-gene matrix
-After pairwise alignment, the same coordinate system is shared between the spatial barcodes and the
-staining images. 
+# Segmentation and single-cell quantification
+Once the ST and imaging modalities [have been aligned](pairwise_alignment.md#option-a-automated-alignment), 
+you can segment the images into single cells/nuclei, and then aggregate the spot locations into individual cells 
+for subsequent analysis.
 
-However, analysis (e.g., clustering, pseudotime, DGE...) is performed on single cells, not on individual capture areas 
-(0.6 μm in the current version of the protocol).
-
-So, we show how to aggregate the $N\times G$ matrix ($N$ spots; $G$ genes)
-into a $M\times G$ matrix ($M$ segmented cells; $G$ genes), where $N$ maps to $M$ via the segmentation mask.
-
-## Segmentation of staining image
-To create such a spatial cell-by-gene ($M\times G$) expression matrix, you will first need a segmentation mask.
-
-We efficiently segment cells (or nuclei) from staining images using [cellpose](https://github.com/MouseLand/cellpose).
-We provide a model that we fine-tuned for segmentation of fresh-frozen, H&E-stained tissue,
-[here](https://github.com/danilexn/openst/blob/main/models/HE_cellpose_rajewsky).
-You can specify any other model that works best for your data -
-refer to the [cellpose](https://cellpose.readthedocs.io/en/latest/index.html) documentation.
+## Cell segmentation from tissue image
+Let's create a new Open-ST h5 object containing a cell-by-gene expression matrix. First, you will need a cell 
+(or nuclear) segmentation mask.
 
 ```sh
-openst segment \
-    --adata <path_to_aligned_h5ad> \
-    --image-in <image_in_path> \
-    --output-mask <mask_out_path> \
-    --model <path>/HE_cellpose_rajewsky \
-    --chunked \ # divides the image into smaller chunks (lower memory usage)
-    --gpu \ # uses GPU for segmentation (Nvidia CUDA)
-    --num-workers 8 \ # processes the image in parallel
-    --dilate-px 10 # will extend the segmentation 10 micron around
+openst from_spacemake \
+     --project-id openst_demo_project \
+     --sample-id openst_demo_sample \
+     segment \
+     --model HE_cellpose_rajewsky # default model for segmentation of H&E images
 ```
-Make sure to replace the placeholders (`<...>`). For instance,
-`<path_to_aligned_h5ad>` is the full path to the `h5ad` file [after pairwise alignment](pairwise_alignment.md#expected-output); 
-`<image_in_path>` is the path to the image - a path to a file, or a location inside the `h5ad` file,
-like `'uns/spatial_pairwise_aligned/staining_image_transformed'` (*our recommendation*).
-`<mask_out_path>` is the location where the segmentation mask will be saved - can be a file or a location in the `h5ad` file,
-like `uns/spatial_pairwise_aligned/mask_transformed_10px` (*our recommendation*). The `<model_path>` for the parameter `--model`
-is the name or location of the cellpose model weights.
 
-We recommend using the [model provided in our repo](https://github.com/rajewsky-lab/openst/blob/main/models/HE_cellpose_rajewsky)
-for segmentation of H&E images The rest of parameters can be checked with `openst segment --help`.
-
-!!! tip
-     **If your sample also contains very large cells** (e.g., adipocytes) that are not segmented with the previous parameters,
-     you can perform a second segmentation with a cellpose model, adjusting the diameter parameter.
+=== "From (semi)automatic alignment"
 
      ```sh
-     openst segment \
-          --adata <path_to_aligned_h5ad> \
-          --image-in <image_in_path> \
-          --output-mask <mask_out_path_larger> \
-          --model <path>/HE_cellpose_rajewsky \
-          --chunked \ # divides the image into smaller chunks (lower memory usage)
-          --gpu \ # uses GPU for segmentation (Nvidia CUDA)
-          --num-workers 8 \ # processes the image in parallel
+     openst from_spacemake \
+          --project-id openst_demo_project \
+          --sample-id openst_demo_sample \
+          segment \
+          --model HE_cellpose_rajewsky \
+          --image-in uns/spatial_pairwise_aligned/staining_image_transformed
+     ```
+
+=== "From manual alignment"
+
+     ```sh
+     openst from_spacemake \
+          --project-id openst_demo_project \
+          --sample-id openst_demo_sample \
+          segment \
+          --model HE_cellpose_rajewsky
+     ```
+
+We segment cells (or nuclei) from staining images using [cellpose](https://github.com/MouseLand/cellpose).
+We provide a model that we fine-tuned for segmentation of fresh-frozen, H&E-stained tissue,
+[here](http://bimsbstatic.mdc-berlin.de/rajewsky/openst-public-data/models/HE_cellpose_rajewsky), but you can use
+any other model (e.g., pretrained from cellpose, like `cyto2` or `nuclei`, or your own).
+Also, by default, segmentation is extended radially 10 pixels (see `--dilate-px`), to account for cytoplasm surrounding
+the nucleus as a first approximation of cell shape (might hold or not depending on the tissue).
+
+??? question "I want to segment very small and very large cells..."
+
+     You can perform an additional round of segmentation by, e.g., adjusting the diameter parameter.
+
+     ```sh
+     openst from_spacemake \
+          --project-id openst_demo_project \
+          --sample-id openst_demo_sample \
+          segment \
+          --mask-out uns/spatial/staining_image_mask_large \
           --dilate-px 50 \
           --diameter 50 # diameter for the larger cell type
      ```
 
-     Replace the placeholders (`<...>`) as before; in this case, the placeholder `<mask_out_path_larger>` must be different from the
-     `<mask_out_path>` provided above.
+     In this case, we changed `--mask-out` to a different key, so we can keep both masks inside the Open-ST h5 object.
      
-     And then, you can combine the segmentation masks of both diameter configurations.
+     Then, you can combine the segmentation masks of both diameter configurations.
      This command will apply an "AND" between all images, to only preserve mask of non-overlapping,
      with the hierarchy provided in the `--image-in` argument (first has higher priority).
 
      ```sh
      openst segment_merge \
-          --adata <path_to_aligned_h5ad> \
-          --mask-in <mask_a> <mask_b>
-          --mask-out <mask_combined>
+          --h5-in spatial_stitched_spots.h5ad \
+          --mask-in uns/spatial/staining_image_mask uns/spatial/staining_image_mask_large
+          --mask-out uns/spatial/staining_image_mask_combined
      ```
 
-     Replace the placeholders (`<...>`) as before; in this case, the placeholder `<mask_a>`, `<mask_b>`... must correspond
-     to the placeholders `<mask_out_path>`, `<mask_out_path_larger>`...
+## Quality control of segmentation
+You can assess the quality of segmentation with `openst preview`:
 
-## Assigning transcripts to segmented cells
-Now, we aggregate the initial $N\times G$ matrix into an $M\times G$ matrix,
-where $N$ maps to $M$ via the segmentation mask.
+=== "From (semi)automatic alignment"
 
-This step allows you to associate capture spots with segmented cells.
+     ```sh
+     openst from_spacemake \
+          --project-id openst_demo_project \
+          --sample-id openst_demo_sample \
+          preview \
+          --image-key uns/spatial_pairwise_aligned/staining_image_transformed uns/spatial/staining_image_mask
+     ```
 
-```sh
-openst transcript_assign \
-    --adata <path_to_aligned_h5ad> \
-    --spatial-key spatial_pairwise_aligned_fine \
-    --mask-in-adata \
-    --mask <mask_out_path> \
-    --output <path_to_sc_h5ad>
-```
+=== "From manual alignment"
 
-Replace the placeholders (`<...>`) as before; in this case, the placeholder `<mask_in_path>` must be set to
-be equal to the `<mask_out_path>` (or `<mask_combined>` if you ran multiple segmentation); also, `<path_to_sc_h5ad>`
-must be set to a valid path and filename where the output cell-by-gene matrix (not barcode-by-cell) will be written.
+     ```sh
+     openst from_spacemake \
+          --project-id openst_demo_project \
+          --sample-id openst_demo_sample \
+          preview \
+          --image-key uns/spatial/staining_image uns/spatial/staining_image_mask
+     ```
+
+This will create a `napari` window with two image layers. Change the mask _image_ layer into a
+[_label_ layer](https://napari.org/stable/howtos/layers/labels.html), which is designed for _displaying each integer (ID
+from the segmentation mask) as a different random color, with background rendered as transparent_.
+
+If you are satistied with the quality of the segmentation, **you are all set to continue with single-cell quantification**.
+
+## Single-cell quantification
+
+Then, you can create a single file containing the transcriptomic information aggregated into (segmented) single-cells.
+
+=== "From automatic alignment"
+
+     ```sh
+     openst from_spacemake \
+          --project-id openst_demo_project \
+          --sample-id openst_demo_sample \
+          transcript_assign \
+          --spatial-key obsm/spatial_pairwise_aligned_fine \
+          --mask-in uns/spatial_pairwise_aligned/staining_image_transformed
+     ```
+
+=== "From semiautomatic alignment"
+
+     ```sh
+     openst from_spacemake \
+          --project-id openst_demo_project \
+          --sample-id openst_demo_sample \
+          transcript_assign \
+          --spatial-key obsm/spatial_manual_fine \
+          --mask-in uns/spatial_pairwise_aligned/staining_image_transformed
+     ```
+
+=== "From manual alignment"
+
+     ```sh
+     openst from_spacemake \
+          --project-id openst_demo_project \
+          --sample-id openst_demo_sample \
+          transcript_assign \
+          --spatial-key obsm/spatial_manual_fine
+     ```
 
 ## Expected output
-After running the steps above, you will have a single `h5ad` file, containing the transcriptomic information per segmented cell,
-with spatial coordinates compatible with the staining image. The staining image and the segmented image are provided in this object,
+After the steps above, you will have a single `h5ad` file with transcriptomic information per segmented cell,
+with spatial coordinates aligned to the staining image. The staining image and the segmented image are provided in this object,
 so it is possible to visualize it with [squidpy](https://github.com/scverse/squidpy) or [spatialdata](https://github.com/scverse/spatialdata),
 among other tools.
 
-So, this concludes the preprocessing of 2D spatial transcriptomics and imaging data
+!!! warning
+     In the Open-ST h5 object, the cell with ID 0 will correspond to the background. Please remove it before
+     proceeding with analysis.
+
+This concludes the preprocessing of 2D spatial transcriptomics and imaging data
 of the Open-ST protocol. Next steps include 3D reconstruction, and
 downstream analysis of nD data.
