@@ -757,7 +757,7 @@ def get_barcode_preprocessing_parser():
     parser.add_argument(
         "--out-suffix",
         type=str,
-        required=True,
+        default=".txt",
         help="Suffix added to the name of the output files (i.e., extension)",
     )
     parser.add_argument(
@@ -770,22 +770,12 @@ def get_barcode_preprocessing_parser():
         "--crop-seq",
         type=str,
         default=":",
-        help=")Optional) A 'python-style' slice, used to crop input sequences",
+        help="(Optional) A 'python-style' slice, used to crop input sequences",
     )
     parser.add_argument(
         "--rev-comp",
         action="store_true",
         help="(Optional) Apply reverse complementary after sequence cropping",
-    )
-    parser.add_argument(
-        "--single-tile",
-        action="store_true",
-        help="(Optional) set if it is guarranteed that the input .fastq(.gz) file contains only a tile",
-    )
-    parser.add_argument(
-        "--unsorted",
-        action="store_true",
-        help="(Optional) set when file is unsorted respect to tiles; might be slower",
     )
 
     return parser
