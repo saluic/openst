@@ -1,123 +1,14 @@
-import argparse
 import logging
 from typing import List, Union
+from tqdm import tqdm
 
 import numpy as np
 from anndata import AnnData, concat, read_h5ad
 
-from openst.utils.file import (
-    check_directory_exists,
-    check_file_exists,
-    check_obs_unique,
-)
+from openst.utils.file import (check_directory_exists, check_file_exists,
+                               check_obs_unique)
 
-DEFAULT_REGEX_tile_ID = "(L[1-4][a-b]?_tile_[1-2][0-7][0-9][0-9])"
-
-
-def get_spatial_stitch_parser():
-    parser = argparse.ArgumentParser(
-        allow_abbrev=False,
-        description="stitching spatial transcriptomics tiles into a common global coordinate system",
-        add_help=False,
-    )
-
-    parser.add_argument(
-        "--tiles",
-        type=str,
-        nargs="+",
-        help="path to spatial.h5ad AnnData file, one per tile",
-        required=True,
-    )
-
-    parser.add_argument(
-        "--tile-id",
-        type=str,
-        nargs="+",
-        help="list of tile id for the input files, same order as tiles."
-        + "Must be specified when the filenames do not contain a tile id that can be parsed with --tile-id-regex",
-        default=None,
-    )
-
-    parser.add_argument(
-        "--tile-coordinates",
-        type=str,
-        help="name of tile collection",
-        required=True,
-    )
-
-    parser.add_argument(
-        "--output",
-        type=str,
-        help="path to output.h5ad AnnData file",
-        required=True,
-    )
-
-    parser.add_argument(
-        "--tile-id-regex",
-        type=str,
-        help="regex to find tile id in file names",
-        default=DEFAULT_REGEX_tile_ID,
-    )
-
-    parser.add_argument(
-        "--tile-id-key",
-        type=str,
-        help="name of .obs variable where tile id are (will be) stored",
-        default="tile_id",
-    )
-
-    parser.add_argument(
-        "--merge-output",
-        type=str,
-        help='how to merge tiles, can be "same", "unique", "first", "only"',
-        choices=["same", "unique", "first", "only"],
-        default="same",
-    )
-
-    parser.add_argument(
-        "--join-output",
-        type=str,
-        help='how to join tiles, can be "inner", "outer"',
-        choices=["inner", "outer"],
-        default="outer",
-    )
-
-    parser.add_argument(
-        "--no-reset-index",
-        default=False,
-        action="store_true",
-        help="""do not reset the obs_name index of the AnnData object
-        as 'obs_name:<tile_id_key>'; keep original 'obs_name'""",
-    )
-
-    parser.add_argument(
-        "--no-transform",
-        default=False,
-        action="store_true",
-        help="do not transform the spatial coordinates of the AnnData object",
-    )
-
-    parser.add_argument(
-        "--metadata-out",
-        type=str,
-        default="",
-        help="Path where the metadata will be stored. If not specified, metadata is not saved.",
-    )
-
-    return parser
-
-
-def setup_spatial_stitch_parser(parent_parser):
-    """setup_spatial_stitch_parser"""
-    parser = parent_parser.add_parser(
-        "spatial_stitch",
-        help="stitching STS tiles into a global coordinate system",
-        parents=[get_spatial_stitch_parser()],
-    )
-    parser.set_defaults(func=_run_spatial_stitch)
-
-    return parser
-
+DEFAULT_REGEX_TILE_ID = "(L[1-4][a-b]_tile_[1-2][0-7][0-9][0-9])"
 
 def _transform_tile(tile: AnnData, tiles_transform: dict):
     """
@@ -167,9 +58,7 @@ def create_spatial_stitch(
         - This function can reset the index and apply spatial transformation to create a tile collection.
     """
     if reset_index:
-        tile.obs_names = (
-            tile.obs_names.astype(str) + ":" + tile.obs["tile_id"].astype(str)
-        )
+        tile.obs_names = tile.obs_names.astype(str) + ":" + tile.obs["tile_id"].astype(str)
 
     if transform:
         tile = _transform_tile(tile, tile_transform)
@@ -177,14 +66,14 @@ def create_spatial_stitch(
     return tile
 
 
-def parse_tile_id_from_path(f: str, tile_id_regex: str = DEFAULT_REGEX_tile_ID):
+def parse_tile_id_from_path(f: str, tile_id_regex: str = DEFAULT_REGEX_TILE_ID):
     """
     Parse the tile ID from a file path using a regular expression.
 
     Args:
         f (str): File path.
         tile_id_regex (str, optional): Regular expression pattern for extracting the tile ID.
-                                       Defaults to DEFAULT_REGEX_tile_ID.
+                                       Defaults to DEFAULT_REGEX_TILE_ID.
 
     Returns:
         str: Extracted tile ID from the file path.
@@ -196,9 +85,7 @@ def parse_tile_id_from_path(f: str, tile_id_regex: str = DEFAULT_REGEX_tile_ID):
     tile_id = re.findall(rf"{tile_id_regex}", bname)
 
     if len(tile_id) > 1:
-        logging.warn(
-            "Found more than one tile_id in the path. First one (index 0) will be used."
-        )
+        logging.warn("Found more than one tile_id in the path. First one (index 0) will be used.")
 
     tile_id = tile_id[0]
 
@@ -206,60 +93,60 @@ def parse_tile_id_from_path(f: str, tile_id_regex: str = DEFAULT_REGEX_tile_ID):
 
 
 def read_tiles_to_list(
-    fs: Union[str, List[str]],
+    f: Union[str, List[str]],
     tile_id: Union[int, List[int], None] = None,
-    tile_id_regex: str = DEFAULT_REGEX_tile_ID,
+    tile_id_regex: str = DEFAULT_REGEX_TILE_ID,
     tile_id_key: str = "tile_id",
 ):
     """
     Read tile data from one or more files into a list of AnnData objects.
 
     Args:
-        fs (Union[str, List[str]]): File path or list of file paths to read tiles from.
+        f (Union[str, List[str]]): File path or list of file paths to read tiles from.
         tile_id (Union[int, List[int], None], optional): Tile ID or list of tile IDs. Defaults to None.
         tile_id_regex (str, optional): Regular expression pattern for extracting tile IDs from file paths.
-                                       Defaults to DEFAULT_REGEX_tile_ID.
+                                       Defaults to DEFAULT_REGEX_TILE_ID.
         tile_id_key (str, optional): Observation key name for tile IDs in the AnnData object. Defaults to "tile_id".
 
     Returns:
         List[AnnData]: List of AnnData objects representing tiles.
     """
-    if type(fs) is str:
-        fs = [fs]
+    if type(f) is str:
+        f = [f]
 
     if tile_id is not None and type(tile_id) is str:
         tile_id = [tile_id]
-    elif type(tile_id) is list and len(tile_id) != len(fs):
-        raise ValueError(
-            f"Dimensions for fs ({len(fs)}) and tile_id ({len(tile_id)}) are not compatible"
-        )
+    elif type(tile_id) is list and len(tile_id) != len(f):
+        raise ValueError(f"""You must provide {len(tile_id)} items in --tile-id,
+                           one per file in --tiles (currently provides {len(f)})""")
 
     tiles = []
 
-    for i, f in enumerate(fs):
+    for i, f in tqdm(enumerate(f)):
         _f_obj = read_h5ad(f)
 
         if "spatial" not in _f_obj.obsm.keys():
             raise ValueError(f"Could not find valid .obsm['spatial'] data in {f}")
-        if tile_id_key not in _f_obj.obs.keys():
+        if tile_id_key not in _f_obj.obs.keys() and tile_id is None:
             if tile_id is None:
                 _tile_id = parse_tile_id_from_path(f, tile_id_regex=tile_id_regex)
                 if len(_tile_id) == 0:
                     raise ValueError(
-                        f"Could not find a tile_id from the filename {f} with the regular expression {tile_id_regex}"
+                        f"Could not find a 'tile_id' for tile {f} with the regular expression {tile_id_regex}"
                     )
             else:
                 _tile_id = tile_id[i]
 
+            _f_obj.obs[tile_id_key] = _tile_id
+        elif tile_id is not None:
+            _tile_id = tile_id[i]
             _f_obj.obs[tile_id_key] = _tile_id
 
         if tile_id_key != "tile_id":
             _f_obj.obs["tile_id"] = _tile_id
 
         if not check_obs_unique(_f_obj, "tile_id"):
-            raise ValueError(
-                f"tile_id exist in AnnData object but are not unique for the tile in file {f}"
-            )
+            raise ValueError(f"'tile_id' exists in Open-ST h5 object but contains more than one unique value in tile {f}")
 
         tiles.append(_f_obj)
 
@@ -280,10 +167,8 @@ def parse_tile_coordinate_system_file(f: str):
 
     cs = pd.read_csv(f, sep="[,|\t]", engine="python")
 
-    tile_id_key = "tile_id" if "tile_id" in cs.columns else "puck_id"
-    temp = cs[tile_id_key].str.findall(DEFAULT_REGEX_tile_ID)
-    cs[tile_id_key] = temp.str[0]  # hack .str accessor to get indices of list
-    cs = cs.set_index(tile_id_key)
+    _tile_id_col = cs.columns[0]
+    cs = cs.set_index(_tile_id_col)
 
     cs = cs.loc[~cs.index.duplicated(keep="first")]
 
@@ -326,24 +211,17 @@ def merge_tiles_to_collection(
     spatial_stitch_list = []
 
     for tile in tiles_list:
-        spatial_stitch_list += [
-            create_spatial_stitch(tile, tile_transform, ~no_reset_index, ~no_transform)
-        ]
+        spatial_stitch_list += [create_spatial_stitch(tile, tile_transform, ~no_reset_index, ~no_transform)]
 
     spatial_stitch = concat(spatial_stitch_list, merge=merge_output, join=join_output)
 
-    spatial_stitch.uns = {
-        np.unique(tile.obs[tile_id_key])[0]: tile.uns for tile in spatial_stitch_list
-    }
+    spatial_stitch.uns = {np.unique(tile.obs[tile_id_key])[0]: tile.uns for tile in spatial_stitch_list}
 
     return spatial_stitch
 
 
 def _run_spatial_stitch(args):
     """_run_spatial_stitch."""
-    logging.info("openst spatial transcriptomics stitching; running with parameters:")
-    logging.info(args.__dict__)
-
     # Check input and output data
     if type(args.tiles) is str:
         check_file_exists(args.tiles)
@@ -351,12 +229,13 @@ def _run_spatial_stitch(args):
         for t in args.tiles:
             check_file_exists(t)
 
-    if not check_directory_exists(args.output):
-        raise FileNotFoundError("Parent directory for --output does not exist")
+    if not check_directory_exists(args.h5_out):
+        raise FileNotFoundError("Parent directory for --h5-out does not exist")
 
-    if args.metadata_out != "" and not check_directory_exists(args.metadata_out):
+    if args.metadata != "" and not check_directory_exists(args.metadata):
         raise FileNotFoundError("Parent directory for the metadata does not exist")
 
+    logging.info(f"Loading {len(args.tiles)} tiles, correcting coordinates and merging")
     spatial_stitch = merge_tiles_to_collection(
         tiles=args.tiles,
         tile_id=args.tile_id,
@@ -369,9 +248,11 @@ def _run_spatial_stitch(args):
         join_output=args.join_output,
     )
 
-    spatial_stitch.write_h5ad(args.output)
+    logging.info(f"Writing merged tiles into {args.h5_out}")
+    spatial_stitch.write_h5ad(args.h5_out)
 
 
 if __name__ == "__main__":
+    from openst.cli import get_spatial_stitch_parser
     args = get_spatial_stitch_parser().parse_args()
     _run_spatial_stitch(args)
