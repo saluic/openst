@@ -1,4 +1,5 @@
 import gzip
+import logging
 import os
 import time
 from collections.abc import Callable
@@ -135,7 +136,7 @@ def _run_barcode_preprocessing(args):
         sequence_preprocessor=sequence_preprocessor,
     )
 
-    print(f"Finished in {round(time.time()-start_time, 2)} sec")
+    logging.info(f"Finished in {round(time.time()-start_time, 2)} sec")
 
 
 if __name__ == "__main__":
