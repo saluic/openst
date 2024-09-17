@@ -1,7 +1,8 @@
 import argparse
 import logging
 
-DEFAULT_REGEX_TILE_ID = "(L[1-4][a-b]_tile_[1-2][0-7][0-9][0-9])"
+# DEFAULT_REGEX_TILE_ID = "(L[1-4][a-b]_tile_[1-2][0-7][0-9][0-9])"
+DEFAULT_REGEX_TILE_ID = "(L[1-4]_tile_[1-2][0-7][0-9][0-9])"
 
 PSEUDOIMAGE_HELP = "Generate pseudoimages of Open-ST RNA data and visualize using napari"
 def get_pseudoimage_parser():
